@@ -13,9 +13,10 @@ import java.awt.GridLayout;
 
 public class EmployeeManagementSystem {
     static Map<String, String> users = new HashMap<>(); // User database
-    static Map<String, String[]> employeeData = new HashMap<>(); // Stores employee input
+    static Map<String, String[]> employeeData = new HashMap<>(); // Stores employee data
     static Map<String, String> overtimeRequests = new HashMap<>(); // Stores overtime requests
-
+    static Map<String, String> leaveRequests = new HashMap<>();//from employees
+    static Map<String, String> leaveResponses = new HashMap<>();//replies of admins
 
     static {
         users.put("admin", "password123");
@@ -142,18 +143,22 @@ class EmployeeProfile extends JFrame {
         panel.add(salaryField);
         
      
-        
-        JButton clearButton = new JButton("Clear");
-        panel.add(clearButton);
-        
         JButton saveButton = new JButton("Save");
         saveButton.addActionListener(e -> saveEmployeeData());
-
+        
         JButton viewButton = new JButton("View Saved Data");
         viewButton.addActionListener(e -> new viewSavedEmployeeDetails(username));
-        
+
         JButton payslipButton = new JButton("View Payslip");
         payslipButton.addActionListener(e -> viewPayslip()); 
+        
+        JButton viewLeaveRequestsButton = new JButton("View Leave Requests");
+        viewLeaveRequestsButton.addActionListener(e -> viewLeaveRequests());
+        
+        if (EmployeeManagementSystem.leaveResponses.containsKey(username)) {
+            JLabel responseLabel = new JLabel("Leave Request Response: " + EmployeeManagementSystem.leaveResponses.get(username));
+            panel.add(responseLabel);
+        }
         
         JButton logoutButton = new JButton("Logout");
         logoutButton.addActionListener(e -> logout());
@@ -177,12 +182,14 @@ class EmployeeProfile extends JFrame {
 
         panel.add(viewButton);
         panel.add(payslipButton);
+        panel.add(viewLeaveRequestsButton);
         panel.add(logoutButton);
 
         add(panel);
         setVisible(true);
     }
-	
+    
+
     private void requestOvertime() { //for employees to create 
         JFrame overtimeFrame = new JFrame("Overtime Request");
         overtimeFrame.setSize(300, 200);
@@ -212,7 +219,7 @@ class EmployeeProfile extends JFrame {
 
     private void viewOvertimeRequests() { //method for administrator to view them
         JFrame viewFrame = new JFrame("Overtime Requests");
-        viewFrame.setSize(300, 200);
+        viewFrame.setSize(400, 300);
         viewFrame.setLayout(new GridLayout(0, 1));
 
         if (EmployeeManagementSystem.overtimeRequests.isEmpty()) {
@@ -221,18 +228,93 @@ class EmployeeProfile extends JFrame {
         }
 
         for (Map.Entry<String, String> entry : EmployeeManagementSystem.overtimeRequests.entrySet()) {
-            viewFrame.add(new JLabel(entry.getKey() + " requested " + entry.getValue() + " hours"));
+            String hoursRequested = entry.getValue();
+            String employee = entry.getKey();
+            
+            JLabel requestLabel = new JLabel("This employee has requested " + hoursRequested + " hours of overtime.");
+            viewFrame.add(requestLabel);
         }
+        
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        
+        JButton approveButton = new JButton("Approve");
+        approveButton.addActionListener(e -> handleLeaveResponse(nameField.getText(), "Overtime request has been Approved!"));
+        
 
+        JButton disapproveButton = new JButton("Disapprove");
+        disapproveButton.addActionListener(e -> handleLeaveResponse(nameField.getText(), "Overtime request has been Denied."));
+        
         JButton closeButton = new JButton("Close");
         closeButton.addActionListener(e -> viewFrame.dispose());
+       
+        viewFrame.add(buttonPanel);
         viewFrame.add(closeButton);
-
+        buttonPanel.add(approveButton);
+        buttonPanel.add(disapproveButton);
         viewFrame.setVisible(true);
+
     }
 
 	private void viewPayslip() {
 		showPayslip();}
+	
+	private void viewLeaveRequests() {
+        JFrame viewFrame = new JFrame("Leave Requests");
+        viewFrame.setSize(400, 300);
+        viewFrame.setLayout(new BorderLayout());
+        
+        JPanel centerPanel = new JPanel(new GridLayout(2, 1, 10, 10));
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        if (EmployeeManagementSystem.leaveRequests.isEmpty()) {
+            JOptionPane.showMessageDialog(viewFrame, "No leave requests found.", "Leave Requests", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        String employeeName = EmployeeManagementSystem.employeeData.get("admin")[0]; // The name is at index 0
+
+        if (!EmployeeManagementSystem.leaveRequests.containsKey(employeeName)) {
+            JOptionPane.showMessageDialog(viewFrame, "You have not submitted any leave requests.", "Leave Requests", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        
+        String request = EmployeeManagementSystem.leaveRequests.get(employeeName);
+        JLabel requestLabel = new JLabel("Your Leave Request: " + request, JLabel.CENTER);
+        centerPanel.add(requestLabel);
+
+        String responseText = EmployeeManagementSystem.leaveResponses.containsKey(employeeName)
+                ? "Admin Response: " + EmployeeManagementSystem.leaveResponses.get(employeeName)
+                : "Admin Response: Pending";
+
+        JLabel responseLabel = new JLabel(responseText, JLabel.CENTER);
+        centerPanel.add(responseLabel);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JButton approveButton = new JButton("Approve");
+        approveButton.addActionListener(e -> handleLeaveResponse(employeeName, "your leave request was Approved!"));
+
+        JButton disapproveButton = new JButton("Disapprove");
+        disapproveButton.addActionListener(e -> handleLeaveResponse(employeeName, "your leave request was Denied."));
+
+        JButton closeButton = new JButton("Close");
+        closeButton.addActionListener(e -> viewFrame.dispose());
+
+        buttonPanel.add(approveButton);
+        buttonPanel.add(disapproveButton);
+        buttonPanel.add(closeButton);
+
+        viewFrame.add(centerPanel, BorderLayout.CENTER);
+        viewFrame.add(buttonPanel, BorderLayout.SOUTH);
+
+        viewFrame.setVisible(true);
+    }
+	
+	private void handleLeaveResponse(String employee, String response) {
+        EmployeeManagementSystem.leaveResponses.put(employee, response);
+        EmployeeManagementSystem.leaveRequests.remove(employee);
+        JOptionPane.showMessageDialog(this, response, "Confirmed", JOptionPane.INFORMATION_MESSAGE);
+    }
 	
 	private void saveEmployeeData() {
         if (!isAdmin) return;
@@ -261,6 +343,36 @@ class EmployeeProfile extends JFrame {
         JOptionPane.showMessageDialog(this, "Employee details saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
     }
 
+	
+
+class AdminDashboard extends JFrame {
+	    public AdminDashboard() {
+	        setTitle("Admin Dashboard");
+	        setSize(400, 300);
+	        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	        setLocationRelativeTo(null);
+
+	        JPanel panel = new JPanel(new GridLayout());
+
+	        JButton viewLeaveRequestsButton = new JButton("View Leave Requests");
+	        viewLeaveRequestsButton.addActionListener(e -> viewLeaveRequests());
+	        panel.add(viewLeaveRequestsButton);
+
+	        JButton logoutButton = new JButton("Logout");
+	        logoutButton.addActionListener(e -> logout());
+	        panel.add(logoutButton);
+
+	        add(panel);
+	        setVisible(true);
+	    }
+
+	    private void logout() {
+	        dispose();
+	        new LoginScreen();
+	    }
+	}
+
+	
 class viewSavedEmployeeDetails extends JFrame {
     	private static final long serialVersionUID = 1L;
         private boolean isAdmin;
@@ -274,7 +386,7 @@ class viewSavedEmployeeDetails extends JFrame {
         	this.isEmployee = username.equals("employee");
         	
         	setTitle("Saved Employee Details");
-            setSize(600, 400);
+            setSize(600, 00);
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             setLocationRelativeTo(null);
             tableModel = new DefaultTableModel();
@@ -301,27 +413,25 @@ class viewSavedEmployeeDetails extends JFrame {
             payslipButton.addActionListener(e -> showPayslip());
             buttonsPanel.add(payslipButton);
 
-            JButton logoutButton = new JButton("Logout");
-            logoutButton.addActionListener(e -> logout());
-            buttonsPanel.add(logoutButton);
-
             if (isAdmin) {
             	JButton viewOvertimeButton = new JButton("View Overtime Requests");
                 viewOvertimeButton.addActionListener(e -> viewOvertimeRequests()); 
                 buttonsPanel.add(viewOvertimeButton);
             }
-            else { 
-            JButton overtimeButton = new JButton("Request Overtime");
-            overtimeButton.addActionListener(e -> requestOvertime());
-            buttonsPanel.add(overtimeButton);
-            }
+            
+            JButton viewLeaveRequestsButton = new JButton("View Leave Requests");
+	        viewLeaveRequestsButton.addActionListener(e -> viewLeaveRequests());
+	        buttonsPanel.add(viewLeaveRequestsButton);
+
             if (isAdmin) {
                 JButton clearButton = new JButton("Clear");
                 clearButton.addActionListener(e -> clearSelectedRow());
                 buttonsPanel.add(clearButton);
             }
             
-         
+            JButton logoutButton = new JButton("Logout");
+            logoutButton.addActionListener(e -> logout());
+            buttonsPanel.add(logoutButton);
             
             add(buttonsPanel, BorderLayout.SOUTH);
             setVisible(true);
@@ -329,7 +439,14 @@ class viewSavedEmployeeDetails extends JFrame {
         
         
 
-        private void loadEmployeeData() {
+        private Object EmployeeProfile() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+
+
+		private void loadEmployeeData() {
             tableModel.setRowCount(0);
             String[] details = EmployeeManagementSystem.employeeData.get("admin");
             if (details != null) {
@@ -350,9 +467,7 @@ class viewSavedEmployeeDetails extends JFrame {
                 JOptionPane.showMessageDialog(this, "Please select a row to delete.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
-
-      
-   	    }
+      }
 
        
    
