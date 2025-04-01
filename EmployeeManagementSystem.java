@@ -1,6 +1,8 @@
 package employeeManagementSystem;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.HashMap;
@@ -8,14 +10,6 @@ import java.util.Map;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
 
 public class EmployeeManagementSystem {
     static Map<String, String> users = new HashMap<>(); // User database
@@ -92,13 +86,12 @@ class EmployeeProfile extends JFrame {
 
     private JTextField nameField, emailField, addressField, deductionsField, taxField, overtimeField,
                        attendanceField, payDateField, paySlipsField, salaryField;
-    private JButton clearButton;
-    private JTable employeeTable;
-    private JTable tableModel;
     private boolean isAdmin;
+    private boolean isEmployee;
 
     public EmployeeProfile(String username) {
         this.isAdmin = username.equals("admin");
+        this.isEmployee = username.equals("employee");
 
         setTitle("Employee Profile");
         setSize(500, 500);
@@ -106,6 +99,7 @@ class EmployeeProfile extends JFrame {
         setLocationRelativeTo(null);
 
         JPanel panel = new JPanel(new GridLayout(13, 2, 10, 10));
+
 
         panel.add(new JLabel("Name:"));
         nameField = new JTextField();
@@ -147,7 +141,10 @@ class EmployeeProfile extends JFrame {
         salaryField = new JTextField();
         panel.add(salaryField);
         
-        tableModel. add(employeeTable, new Object[]{nameField, emailField, deductionsField, taxField, overtimeField, attendanceField, payDateField, paySlipsField, salaryField });
+     
+        
+        JButton clearButton = new JButton("Clear");
+        panel.add(clearButton);
         
         JButton saveButton = new JButton("Save");
         saveButton.addActionListener(e -> saveEmployeeData());
@@ -156,7 +153,7 @@ class EmployeeProfile extends JFrame {
         viewButton.addActionListener(e -> new viewSavedEmployeeDetails(username));
         
         JButton payslipButton = new JButton("View Payslip");
-        payslipButton.addActionListener(e -> viewPayslip(username)); 
+        payslipButton.addActionListener(e -> viewPayslip()); 
         
         JButton logoutButton = new JButton("Logout");
         logoutButton.addActionListener(e -> logout());
@@ -167,7 +164,7 @@ class EmployeeProfile extends JFrame {
         	new ViewSavedEmployeeDetails(); // Employee cannot edit
         }
         
-        if (!isAdmin) { 
+        if (isEmployee) { 
             JButton overtimeButton = new JButton("Request Overtime");
             overtimeButton.addActionListener(e -> requestOvertime()); 
             panel.add(overtimeButton);
@@ -234,29 +231,8 @@ class EmployeeProfile extends JFrame {
         viewFrame.setVisible(true);
     }
 
-	private Object viewPayslip(String username) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	private void viewPayslip() {
-        JFrame frame = new JFrame("Employee Dashboard");
-        frame.setSize(400, 300);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLayout(new FlowLayout());
-
-        JButton btnViewPayslip = new JButton("View Payslip");
-        frame.add(btnViewPayslip);
-
-        btnViewPayslip.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                showPayslip();
-            }
-        });
-
-        frame.setVisible(true);
-        }
+		showPayslip();}
 	
 	private void saveEmployeeData() {
         if (!isAdmin) return;
@@ -288,91 +264,103 @@ class EmployeeProfile extends JFrame {
 class viewSavedEmployeeDetails extends JFrame {
     	private static final long serialVersionUID = 1L;
         private boolean isAdmin;
+		private boolean isEmployee;
+        private JTable employeeTable;
+        private DefaultTableModel tableModel;
+
         
         public viewSavedEmployeeDetails(String username) {
         	this.isAdmin = username.equals("admin");
+        	this.isEmployee = username.equals("employee");
         	
         	setTitle("Saved Employee Details");
-            setSize(500, 500);
+            setSize(600, 400);
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             setLocationRelativeTo(null);
+            tableModel = new DefaultTableModel();
+            employeeTable = new JTable(tableModel);
+            JScrollPane scrollPane = new JScrollPane(employeeTable);
+            add(scrollPane, BorderLayout.CENTER);
             
-           String[] details = EmployeeManagementSystem.employeeData.get("admin"); // Show admin's saved data
-           if (details == null) {
-               JOptionPane.showMessageDialog(this, "No data found. Please save first!", "Error", JOptionPane.ERROR_MESSAGE);
-               return;
-           }
-           
-           JPanel mainPanel  = new JPanel(new BorderLayout()); //main panel
-           
+            tableModel.setColumnIdentifiers(new String[]{
+                    "Name", "Email", "Address", "Deductions", "Tax", "Overtime", "Attendance", "Pay Date", "Pay Slips", "Salary"
+                });
+            loadEmployeeData();
+            
+            String[] details = EmployeeManagementSystem.employeeData.get("admin"); // Show admin's saved data
+            
+            if (details == null) {
+                JOptionPane.showMessageDialog(this, "No data found. Please save first!", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+            //buttons panel for bottom. 
+            //dear god... the buttons were dancing when I ran this without giving them directions
+            JButton payslipButton = new JButton("View Payslip");
+            payslipButton.addActionListener(e -> showPayslip());
+            buttonsPanel.add(payslipButton);
 
-           JPanel detailsPanel = new JPanel(new GridLayout(10, 2, 10, 10)); //pls let this alignment work
-           
-           detailsPanel.add(new JLabel("Name: " + details[0]));
-           detailsPanel.add(new JLabel("Email: " + details[1]));
-           detailsPanel.add(new JLabel("Address: " + details[2]));
-           detailsPanel.add(new JLabel("Deductions: " + details[3]));
-           detailsPanel.add(new JLabel("Tax: " + details[4]));
-           detailsPanel.add(new JLabel("Overtime: " + details[5]));
-           detailsPanel.add(new JLabel("Attendance: " + details[6]));
-           detailsPanel.add(new JLabel("Pay Date: " + details[7]));
-           detailsPanel.add(new JLabel("Pay Slips: " + details[8]));
-           detailsPanel.add(new JLabel("Salary: PHP " + details[9]));
-           
-           JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10)); //buttons panel for bottom. 
-           //dear god... the buttons were dancing when I ran this without giving them directions
-           
-           JButton payslipButton = new JButton("View Payslip");
-           payslipButton.addActionListener(e -> ViewPayslip.showPayslip());
-           buttonsPanel.add(payslipButton);
-   		
-   		if (!isAdmin) { // Employees can request overtime
-   	        JButton overtimeButton = new JButton("Request Overtime");
-   	        overtimeButton.addActionListener(e -> requestOvertime());
-   	        buttonsPanel.add(overtimeButton);
-   	    }
-   		mainPanel.add(detailsPanel, BorderLayout.CENTER);
-   		mainPanel.add(buttonsPanel, BorderLayout.SOUTH);
-   		
-   		add(mainPanel);
-        setVisible(true);
-       }
-       
-   private void requestOvertime() { //for employees
-           JFrame overtimeFrame = new JFrame("Overtime Request");
-           overtimeFrame.setSize(300, 200);
-           overtimeFrame.setLayout(new GridLayout(3, 2));
+            JButton logoutButton = new JButton("Logout");
+            logoutButton.addActionListener(e -> logout());
+            buttonsPanel.add(logoutButton);
 
-           overtimeFrame.add(new JLabel("Overtime Hours:"));
-           JTextField txtOvertimeHours = new JTextField();
-           overtimeFrame.add(txtOvertimeHours);
-
-           JButton btnSubmit = new JButton("Submit Request");
-           overtimeFrame.add(btnSubmit);
-
-           btnSubmit.addActionListener(e -> {
-               String overtimeHours = txtOvertimeHours.getText();
-               if (!overtimeHours.isEmpty()) {
-                   EmployeeManagementSystem.overtimeRequests.put(getName(), overtimeHours);
-                   JOptionPane.showMessageDialog(overtimeFrame, "Overtime request submitted for admin approval.");
-                   overtimeFrame.dispose();
-               } else {
-                   JOptionPane.showMessageDialog(overtimeFrame, "Please enter overtime hours.", "Error", JOptionPane.ERROR_MESSAGE);
-               }
-           });
-
-           overtimeFrame.setVisible(true);
+            if (isAdmin) {
+            	JButton viewOvertimeButton = new JButton("View Overtime Requests");
+                viewOvertimeButton.addActionListener(e -> viewOvertimeRequests()); 
+                buttonsPanel.add(viewOvertimeButton);
+            }
+            else { 
+            JButton overtimeButton = new JButton("Request Overtime");
+            overtimeButton.addActionListener(e -> requestOvertime());
+            buttonsPanel.add(overtimeButton);
+            }
+            if (isAdmin) {
+                JButton clearButton = new JButton("Clear");
+                clearButton.addActionListener(e -> clearSelectedRow());
+                buttonsPanel.add(clearButton);
+            }
+            
+         
+            
+            add(buttonsPanel, BorderLayout.SOUTH);
+            setVisible(true);
         }
-    	
-    }
-    
-    
+        
+        
 
+        private void loadEmployeeData() {
+            tableModel.setRowCount(0);
+            String[] details = EmployeeManagementSystem.employeeData.get("admin");
+            if (details != null) {
+                tableModel.addRow(details);
+            }
+        }
+        
+        private void clearSelectedRow() {
+            int selectedRow = employeeTable.getSelectedRow();
+            if (selectedRow != -1) {
+                int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this row?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    tableModel.removeRow(selectedRow);
+                    EmployeeManagementSystem.employeeData.clear();
+                    JOptionPane.showMessageDialog(this, "Row deleted successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Please select a row to delete.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+
+      
+   	    }
+
+       
+   
     static void showPayslip() {
         	
             JFrame payslipFrame = new JFrame("Payslip");
             payslipFrame.setSize(300, 200);
-            payslipFrame.setLayout(new GridLayout(5, 2));
+            payslipFrame.setLayout(new GridLayout(5, 2, 10, 10));
             String[] details = EmployeeManagementSystem.employeeData.get("admin"); // Show admin's saved data
             
             if (details == null) {
@@ -382,21 +370,21 @@ class viewSavedEmployeeDetails extends JFrame {
             
             double basicSalary = Double.parseDouble(details[9]);
             double deductions = Double.parseDouble(details[3]);
-            double netSalary = basicSalary - deductions; // Calculate Net Salary
+            double netSalary = basicSalary - deductions; // subtract to get Net Salary
 
             
             payslipFrame.add(new JLabel("Employee Name:"));
             payslipFrame.add(new JLabel(details[0]));
-            payslipFrame.add(new JLabel("Basic Salary:"));
-            payslipFrame.add(new JLabel(details[9]));
-            payslipFrame.add(new JLabel("Deductions:"));
-            payslipFrame.add(new JLabel(details[3]));
+            payslipFrame.add(new JLabel("Basic Salary: PHP"));
+            payslipFrame.add(new JLabel("PHP" + details[9]));
+            payslipFrame.add(new JLabel("Deductions: PHP"));
+            payslipFrame.add(new JLabel("PHP" + details[3]));
             payslipFrame.add(new JLabel("Net Salary:"));
             
-            payslipFrame.add(new JLabel(String.valueOf(netSalary)));
+            payslipFrame.add(new JLabel("PHP" + String.valueOf(netSalary))); //answer from the subtraction
             
             JButton btnClose = new JButton("Close");
-            payslipFrame.add(btnClose);
+            payslipFrame.add(btnClose, BorderLayout.SOUTH);
             btnClose.addActionListener(e -> payslipFrame.dispose());
             
             payslipFrame.setVisible(true);
