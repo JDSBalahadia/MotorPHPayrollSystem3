@@ -185,13 +185,13 @@ class EmployeeProfile extends JFrame {
         panel.add(viewLeaveRequestsButton);
         panel.add(logoutButton);
 
-        add(panel);
+             add(panel);
         setVisible(true);
     }
     
 
     private void requestOvertime() { //for employees to create 
-        JFrame overtimeFrame = new JFrame("Overtime Request");
+        JFrame overtimeFrame = new JFrame("Overtime Requesting");
         overtimeFrame.setSize(300, 200);
         overtimeFrame.setLayout(new GridLayout(3, 2));
 
@@ -218,10 +218,9 @@ class EmployeeProfile extends JFrame {
 
 
     private void viewOvertimeRequests() { //method for administrator to view them
-        JFrame viewFrame = new JFrame("Overtime Requests");
+        JFrame viewFrame = new JFrame("Overtime Request Alert!");
         viewFrame.setSize(400, 300);
         viewFrame.setLayout(new GridLayout(0, 1));
-
         if (EmployeeManagementSystem.overtimeRequests.isEmpty()) {
             JOptionPane.showMessageDialog(viewFrame, "No overtime requests found.", "List of Overtime Requests", JOptionPane.INFORMATION_MESSAGE);
             return;
@@ -229,20 +228,22 @@ class EmployeeProfile extends JFrame {
 
         for (Map.Entry<String, String> entry : EmployeeManagementSystem.overtimeRequests.entrySet()) {
             String hoursRequested = entry.getValue();
-            String employee = entry.getKey();
+
             
             JLabel requestLabel = new JLabel("This employee has requested " + hoursRequested + " hours of overtime.");
-            viewFrame.add(requestLabel);
+            viewFrame.add(requestLabel, BorderLayout.CENTER);
         }
         
         JPanel buttonPanel = new JPanel(new FlowLayout());
         
+        String employeeName = EmployeeManagementSystem.employeeData.get("employee")[0];
+        
         JButton approveButton = new JButton("Approve");
-        approveButton.addActionListener(e -> handleLeaveResponse(nameField.getText(), "Overtime request has been Approved!"));
+        approveButton.addActionListener(e -> handleLeaveResponse(employeeName, "Overtime request has been Approved!"));
         
 
         JButton disapproveButton = new JButton("Disapprove");
-        disapproveButton.addActionListener(e -> handleLeaveResponse(nameField.getText(), "Overtime request has been Denied."));
+        disapproveButton.addActionListener(e -> handleLeaveResponse(employeeName, "Overtime request has been Denied."));
         
         JButton closeButton = new JButton("Close");
         closeButton.addActionListener(e -> viewFrame.dispose());
